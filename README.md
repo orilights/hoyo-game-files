@@ -1,8 +1,10 @@
 # Genshin Files
 
-在线列出游戏客户端的文件
+在线列出游戏客户端文件
 
 版本数据为个人收集，非实时更新
+
+访问：[Cloudflare](https://genshin-files.orilight.top/) [Vercel](https://genshin-files.vercel.app)
 
 ![screenshot](docs/screenshot.png)
 
