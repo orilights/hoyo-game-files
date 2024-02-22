@@ -1,0 +1,9 @@
+{
+  "prettier.enable": false,
+  "editor.tabSize": 2,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.formatOnSave": false,
+  "eslint.experimental.useFlatConfig": true
+}
