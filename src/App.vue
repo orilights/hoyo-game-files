@@ -290,7 +290,7 @@ onMounted(() => {
       <el-space direction="vertical" size="large" alignment="center">
         <div
           v-for="[key, gameConfig] in Object.entries(GameConfigList)" :key="key"
-          class="overflow-hidden rounded-xl border-2 border-transparent hover:border-gray-300"
+          class="overflow-hidden rounded-xl border-2 border-transparent transition-all duration-300 hover:border-gray-300"
           :class="{
             '!border-blue-500': game === key,
           }"
@@ -303,7 +303,7 @@ onMounted(() => {
           >
         </div>
         <div
-          class="overflow-hidden rounded-xl border-2 border-transparent hover:border-gray-300"
+          class="overflow-hidden rounded-xl border-2 border-transparent transition-all  duration-300 hover:border-gray-300"
           title="Github"
           @click="openLink(GithubRepoUrl)"
         >
@@ -375,8 +375,8 @@ onMounted(() => {
                       :value="item"
                     />
                   </el-select>
-                  <el-button v-if="loadVoicePack" size="small" @click="loadFileList">
-                    加载
+                  <el-button size="small" @click="loadFileList">
+                    应用
                   </el-button>
                 </el-space>
                 <el-divider class="my-2" />

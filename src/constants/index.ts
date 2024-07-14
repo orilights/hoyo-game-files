@@ -1,6 +1,6 @@
 import type { GameConfig } from '@/types'
 
-export const GithubRepoUrl = 'https://github.com/orilights/Files'
+export const GithubRepoUrl = 'https://github.com/orilights/hoyo-game-files'
 
 export const GameConfigList: Record<string, GameConfig>
  = {
