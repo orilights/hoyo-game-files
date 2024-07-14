@@ -1,24 +1,24 @@
-# Genshin Files
+# Files
 
-在线列出游戏客户端文件
+在线列出游戏版本列表、游戏包列表、更新包列表与游戏文件列表，支持直接下载（部分）
 
-版本数据为个人收集，非实时更新
-
-访问：[Cloudflare](https://genshin-files.orilight.top/) [Vercel](https://genshin-files.vercel.app)
-
-![screenshot](docs/screenshot.png)
+访问：[files.hk4e.com](https://files.hk4e.com/)
 
 ## 支持游戏
 
 - [x] 原神 CN
 - [x] 崩坏：星穹铁道 CN
+- [x] 绝区零 CN
 
 ## 支持功能
 
-- [x] 列出文件
+- [x] 列出游戏版本列表
+- [x] 列出游戏包列表
+- [x] 列出更新包列表
+- [x] 批量文件下载链接
+- [x] 列出游戏文件列表
   - [x] 文件夹模式
   - [ ] 平铺模式
-  - [ ] 包括音频文件
-- [x] 下载文件
-- [x] 复制文件 md5、hash
-- [ ] 搜索文件
+  - [x] 加载语音包
+  - [x] 下载文件
+  - [ ] 搜索文件

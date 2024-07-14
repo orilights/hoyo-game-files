@@ -28,8 +28,6 @@
     }
   ],
   "include": [
-    "components.d.ts",
-    "auto-imports.d.ts",
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.tsx",
