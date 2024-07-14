@@ -15,7 +15,9 @@ export function openLink(url: string) {
   a.click()
 }
 
-export function formatBytes(size: number) {
+export function formatBytes(size: number | string) {
+  if (typeof size === 'string')
+    size = Number.parseInt(size)
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let i = 0
   while (size > 1024) {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FileInfoWithType } from '@/types'
-import { copyToClipboard, openLink, formatBytes } from '@/utils'
+import { copyToClipboard, formatBytes, openLink } from '@/utils'
 
 const props = defineProps<{
   data: FileInfoWithType[]
@@ -41,12 +41,10 @@ function handleCopySelected() {
     <el-table-column prop="type" label="类型" width="60" />
     <el-table-column prop="checksum" label="校验信息" width="250">
       <template #default="scope">
-        <el-button link size="small" class="!p-0" @click="copyToClipboard(scope.row.checksum)">
-          {{ scope.row.checksum }}
-        </el-button>
+        <CopyAbleText :text="scope.row.checksum" />
       </template>
     </el-table-column>
-    <el-table-column prop="size" label="文件大小" width="80">
+    <el-table-column prop="size" label="文件大小" width="120">
       <template #default="scope">
         <span>{{ formatBytes(scope.row.size) }}</span>
       </template>

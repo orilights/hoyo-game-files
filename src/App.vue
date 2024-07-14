@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FileData, FileInfoWithType, FileNode, VersionData } from '@/types'
+import type { ChunkInfo, ChunkStat, FileData, FileInfoWithType, FileListState, FileNode, VersionData } from '@/types'
 import { NodeType } from '@/types'
 import { GameConfigList, GithubRepoUrl, VoicePackList } from '@/constants'
 import { copyToClipboard, formatBytes, openLink } from '@/utils'
@@ -20,22 +20,20 @@ const loadVoicePack = ref(false)
 const loadVoicePackList = ref([])
 const gamePackageData = ref<FileInfoWithType[]>([])
 const updatePackageData = ref<Record<string, FileInfoWithType[]>>({})
+const chunkData = ref<{
+  info: ChunkInfo | null
+  stat: ChunkStat | null
+} >({
+  info: null,
+  stat: null,
+})
 const loading = ref({
   versionList: false,
+  chunkStat: false,
   fileList: false,
 })
 const contentState = ref<string[]>(['game', 'update', 'list'])
-const fileListState = ref<{
-  game: string
-  version: string
-  voice: string[]
-  decompressed_path: string | null
-  tree: FileNode
-  currentPath: string
-  displayFileNode?: FileNode
-  count: number
-  size: number
-}>({
+const fileListState = ref<FileListState>({
   game: '',
   version: '',
   voice: [],
@@ -180,12 +178,28 @@ function refreshVersionData() {
       })
     })
   })
+  chunkData.value.info = versionData.chunk
+  loadChunkStat()
   loadFileList()
 }
 
 async function fetchPkgVersion(version: string, filename: string) {
   const data = await fetch(`${apiBase}/${game.value}/${version}/${filename}`)
   return data.text()
+}
+
+async function loadChunkStat() {
+  loading.value.chunkStat = true
+  if (!chunkData.value.info)
+    return
+  try {
+    const data = await fetch(`${apiBase}/chunk/${game.value}_${version.value}.json`)
+    chunkData.value.stat = (await data.json()).data
+  }
+  catch (e) {
+    ElMessage.error(`chunk 数据加载失败 ${e}`)
+  }
+  loading.value.chunkStat = false
 }
 
 async function loadFileList() {
@@ -317,7 +331,7 @@ onMounted(() => {
     <el-aside v-loading="loading.versionList" width="160px" class="border-r">
       <el-scrollbar>
         <el-menu class="border-none" @select="handleSelectVersion">
-          <el-menu-item v-for="v, index in displayVersionList" :key="v" class="h-[40px]" :index="String(index)">
+          <el-menu-item v-for="v, index in displayVersionList" :key="v" class="h-[36px]" :index="String(index)">
             <span>{{ v }}</span>
           </el-menu-item>
         </el-menu>
@@ -327,11 +341,85 @@ onMounted(() => {
       <el-main>
         <el-collapse v-model="contentState">
           <el-collapse-item name="game" title="游戏包" class="mb-2 rounded-lg border px-4 shadow-md">
-            <el-divider class="mb-2 mt-0" />
             <GamePackageTable :data="gamePackageData" />
+            <el-collapse v-if="chunkData.info" class="mt-2">
+              <el-collapse-item
+                title="chunk"
+                class="mb-1 rounded-lg border px-4"
+              >
+                <el-scrollbar v-loading="loading.chunkStat">
+                  <el-space class="mb-2">
+                    <el-tag type="primary" effect="plain">
+                      branch={{ chunkData.info.branch }}
+                    </el-tag>
+                    <el-tag type="primary" effect="plain">
+                      package_id={{ chunkData.info.package_id }}
+                    </el-tag>
+                    <el-tag type="primary" effect="plain">
+                      password={{ chunkData.info.password }}
+                    </el-tag>
+                    <el-tag type="primary" effect="plain">
+                      tag={{ chunkData.info.tag }}
+                    </el-tag>
+                    <el-tag type="primary" effect="plain">
+                      build_id={{ chunkData.stat?.build_id }}
+                    </el-tag>
+                  </el-space>
+                  <el-descriptions
+                    v-for="manifest, index in chunkData.stat?.manifests" :key="index"
+                    :column="3"
+                    class="mb-2"
+                    border
+                    size="small"
+                  >
+                    <el-descriptions-item>
+                      <template #label>
+                        分类
+                      </template>
+                      {{ manifest.category_id }} - {{ manifest.category_name }}
+                    </el-descriptions-item>
+                    <el-descriptions-item :span="2">
+                      <template #label>
+                        Manifest ID
+                      </template>
+                      <CopyAbleText :text="manifest.manifest.id" />
+                    </el-descriptions-item>
+                    <el-descriptions-item :span="3">
+                      <template #label>
+                        Chunk 下载地址前缀
+                      </template>
+                      <CopyAbleText :text="manifest.chunk_download.url_prefix" />
+                    </el-descriptions-item>
+                    <el-descriptions-item :span="3">
+                      <template #label>
+                        Manifest 下载地址前缀
+                      </template>
+                      <CopyAbleText :text="manifest.manifest_download.url_prefix" />
+                    </el-descriptions-item>
+                    <el-descriptions-item>
+                      <template #label>
+                        未压缩大小
+                      </template>
+                      {{ manifest.stats.uncompressed_size }} ({{ formatBytes(manifest.stats.uncompressed_size) }})
+                    </el-descriptions-item>
+                    <el-descriptions-item>
+                      <template #label>
+                        文件数量
+                      </template>
+                      {{ manifest.stats.file_count }}
+                    </el-descriptions-item>
+                    <el-descriptions-item>
+                      <template #label>
+                        文件块数量
+                      </template>
+                      {{ manifest.stats.chunk_count }}
+                    </el-descriptions-item>
+                  </el-descriptions>
+                </el-scrollbar>
+              </el-collapse-item>
+            </el-collapse>
           </el-collapse-item>
           <el-collapse-item name="update" title="升级包" class="mb-2 rounded-lg border px-4 shadow-md">
-            <el-divider class="mb-2 mt-0" />
             <div v-loading="loading.versionList">
               <div v-if="Object.keys(updatePackageData).length === 0" class="py-2 text-center text-[color:var(--el-text-color-secondary)]">
                 无数据
@@ -340,16 +428,14 @@ onMounted(() => {
                 <el-collapse-item
                   v-for="[versionKey, updateData] in Object.entries(updatePackageData)" :key="versionKey"
                   :title="versionKey"
-                  class="px-2"
+                  class="mb-1 rounded-lg border px-4"
                 >
-                  <el-divider class="mb-2 mt-0" />
                   <GamePackageTable :data="updateData" />
                 </el-collapse-item>
               </el-collapse>
             </div>
           </el-collapse-item>
           <el-collapse-item name="list" title="文件列表" class="mb-2 rounded-lg border px-4 shadow-md">
-            <el-divider class="mb-2 mt-0" />
             <div v-loading="loading.fileList || loading.versionList">
               <template v-if="GameConfigList[game].voice.length">
                 <el-space>
@@ -379,25 +465,25 @@ onMounted(() => {
                     应用
                   </el-button>
                 </el-space>
-                <el-divider class="my-2" />
+                <el-divider class="mb-2 mt-1" />
               </template>
               <el-space class="mb-2">
-                <el-tag type="primary">
+                <el-tag type="primary" effect="plain">
                   当前路径 {{ fileListState.currentPath || '根目录' }}
                 </el-tag>
-                <el-tag type="primary">
+                <el-tag type="primary" effect="plain">
                   游戏 {{ fileListState.game }}
                 </el-tag>
-                <el-tag type="primary">
+                <el-tag type="primary" effect="plain">
                   版本 {{ fileListState.version }}
                 </el-tag>
-                <el-tag type="primary">
+                <el-tag type="primary" effect="plain">
                   语音包 {{ fileListState.voice.length ? fileListState.voice.join(' ') : '无' }}
                 </el-tag>
-                <el-tag type="primary">
+                <el-tag type="primary" effect="plain">
                   文件数量 {{ fileListState.count }}
                 </el-tag>
-                <el-tag type="primary">
+                <el-tag type="primary" effect="plain">
                   文件大小 {{ formatBytes(fileListState.size) }}
                 </el-tag>
               </el-space>

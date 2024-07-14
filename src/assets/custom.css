@@ -1,9 +1,10 @@
 .el-collapse-item__header {
   border-bottom: none;
+  height: 36px;
 }
 
 .el-collapse {
-  border-top: none;
+  border: none;
 }
 
 .el-collapse-item__content {

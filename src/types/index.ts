@@ -47,11 +47,57 @@ export interface VersionData {
     }
   }
   decompressed_path: string | null
-  chunk: string | null
+  chunk: ChunkInfo | null
 }
 
 export interface GameConfig {
   name: string
   icon: string
   voice: string[]
+}
+
+export interface FileListState {
+  game: string
+  version: string
+  voice: string[]
+  decompressed_path: string | null
+  tree: FileNode
+  currentPath: string
+  displayFileNode?: FileNode
+  count: number
+  size: number
+}
+
+export interface ChunkInfo {
+  branch: string
+  package_id: string
+  password: string
+  tag: string
+}
+
+export interface ChunkStat {
+  build_id: string
+  tag: string
+  manifests: {
+    category_id: string
+    category_name: string
+    manifest: {
+      id: string
+      checksum: string
+      compressed_size: string
+      uncompressed_size: string
+    }
+    chunk_download: {
+      url_prefix: string
+    }
+    manifest_download: {
+      url_prefix: string
+    }
+    stats: {
+      compressed_size: string
+      uncompressed_size: string
+      file_count: string
+      chunk_count: string
+    }
+  }[]
 }
