@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { FileData, FileInfoWithType, FileNode, VersionData } from '@/types'
 import { NodeType } from '@/types'
-import { GameConfigList, VoicePackList } from '@/constants'
-import { copyToClipboard, downloadFile, formatBytes } from '@/utils'
+import { GameConfigList, GithubRepoUrl, VoicePackList } from '@/constants'
+import { copyToClipboard, formatBytes, openLink } from '@/utils'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '.'
 const API_BASE_FALLBACK = import.meta.env.VITE_API_BASE_FALLBACK || ''
@@ -263,6 +263,7 @@ async function loadFileList() {
     fileListState.value.game = GameConfigList[game.value].name
     fileListState.value.version = version.value
     fileListState.value.voice = loadedVoicePackList
+    fileListState.value.decompressed_path = versionListData.value[version.value].decompressed_path
     fileListState.value.tree = newFileTree
     fileListState.value.currentPath = ''
     fileListState.value.count = fileData.length
@@ -293,10 +294,21 @@ onMounted(() => {
           :class="{
             '!border-blue-500': game === key,
           }"
+          :title="gameConfig.name"
           @click="loadGameVersionList(key)"
         >
           <img
             :src="gameConfig.icon" :alt="gameConfig.name"
+            class="size-[48px]"
+          >
+        </div>
+        <div
+          class="overflow-hidden rounded-xl border-2 border-transparent hover:border-gray-300"
+          title="Github"
+          @click="openLink(GithubRepoUrl)"
+        >
+          <img
+            src="/icon/github.png" alt="GithubRepoUrl"
             class="size-[48px]"
           >
         </div>
@@ -466,7 +478,7 @@ onMounted(() => {
                     <td>{{ file.displaySize || formatBytes(file.size) }}</td>
                     <td>
                       <template v-if="file.type === NodeType.File && file.fileData">
-                        <button v-if="fileListState.decompressed_path" class="mr-1" @click="downloadFile(`${fileListState.decompressed_path}/${file.fileData.remoteName}`)">
+                        <button v-if="fileListState.decompressed_path" class="mr-1" @click="openLink(`${fileListState.decompressed_path}/${file.fileData.remoteName}`)">
                           下载
                         </button>
                         <button v-if="file.fileData.md5" class="mr-1" @click="copyToClipboard(file.fileData.md5)">

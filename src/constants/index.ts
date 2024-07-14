@@ -1,5 +1,7 @@
 import type { GameConfig } from '@/types'
 
+export const GithubRepoUrl = 'https://github.com/orilights/Files'
+
 export const GameConfigList: Record<string, GameConfig>
  = {
    hk4e: {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FileInfoWithType } from '@/types'
-import { copyToClipboard, downloadFile, formatBytes } from '@/utils'
+import { copyToClipboard, openLink, formatBytes } from '@/utils'
 
 const props = defineProps<{
   data: FileInfoWithType[]
@@ -56,7 +56,7 @@ function handleCopySelected() {
         <el-button link type="primary" size="small" @click="copyToClipboard(scope.row.url)">
           复制链接
         </el-button>
-        <el-button link type="primary" size="small" @click="downloadFile(scope.row.checksum)">
+        <el-button link type="primary" size="small" @click="openLink(scope.row.checksum)">
           下载
         </el-button>
       </template>

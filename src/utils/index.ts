@@ -8,7 +8,7 @@ export function copyToClipboard(text: string) {
     })
 }
 
-export function downloadFile(url: string) {
+export function openLink(url: string) {
   const a = document.createElement('a')
   a.href = url
   a.target = '_blank'
