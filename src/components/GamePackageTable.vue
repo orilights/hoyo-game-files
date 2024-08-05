@@ -6,19 +6,19 @@ const props = defineProps<{
   data: FileInfoWithType[]
 }>()
 
-const selection = ref<any[]>([])
+const selection = ref<FileInfoWithType[]>([])
 
-function handleSelectionChange(val: any[]) {
+function handleSelectionChange(val: FileInfoWithType[]) {
   selection.value = val
 }
 
 function handleCopyAll() {
-  const urls = props.data.map((item: any) => item.url).join('\n')
+  const urls = props.data.map(item => item.url).join('\n')
   copyToClipboard(urls)
 }
 
 function handleCopySelected() {
-  const urls = selection.value.map((item: any) => item.url).join('\n')
+  const urls = selection.value.map(item => item.url).join('\n')
   copyToClipboard(urls)
 }
 </script>
@@ -36,9 +36,9 @@ function handleCopySelected() {
     :data="data" style="width: 100%" size="small"
     @selection-change="handleSelectionChange"
   >
-    <el-table-column type="selection" width="55" />
+    <el-table-column type="selection" width="28" />
     <el-table-column prop="name" label="文件名" min-width="200" />
-    <el-table-column prop="type" label="类型" width="60" />
+    <el-table-column prop="type" label="类型" width="100" />
     <el-table-column prop="checksum" label="校验信息" width="250">
       <template #default="scope">
         <CopyAbleText :text="scope.row.checksum" />
@@ -61,7 +61,3 @@ function handleCopySelected() {
     </el-table-column>
   </el-table>
 </template>
-
-<style scoped>
-
-</style>

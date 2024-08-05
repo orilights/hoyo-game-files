@@ -3,7 +3,7 @@ export enum NodeType {
   Directory = 'dir',
 }
 
-export interface FileData {
+export interface PkgVersionFile {
   remoteName: string
   md5: string
   hash?: string
@@ -15,8 +15,7 @@ export interface FileNode {
   name: string
   children: FileNode[]
   size: number
-  displaySize: string
-  fileData?: FileData
+  fileData?: PkgVersionFile
 }
 
 export interface FileInfo {
@@ -60,9 +59,8 @@ export interface FileListState {
   game: string
   version: string
   voice: string[]
-  decompressed_path: string | null
-  tree: FileNode
-  currentPath: string
+  decompressedPath: string | null
+  tree: FileNode | null
   displayFileNode?: FileNode
   count: number
   size: number
@@ -75,7 +73,7 @@ export interface ChunkInfo {
   tag: string
 }
 
-export interface ChunkStat {
+export interface ChunkData {
   build_id: string
   tag: string
   manifests: {

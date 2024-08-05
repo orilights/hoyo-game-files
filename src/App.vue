@@ -1,128 +1,121 @@
 <script setup lang="ts">
-import type { ChunkInfo, ChunkStat, FileData, FileInfoWithType, FileListState, FileNode, VersionData } from '@/types'
+import type { ChunkData, ChunkInfo, FileInfoWithType, FileListState, FileNode, PkgVersionFile, VersionData } from '@/types'
 import { NodeType } from '@/types'
-import { GameConfigList, GithubRepoUrl, VoicePackList } from '@/constants'
-import { copyToClipboard, formatBytes, openLink } from '@/utils'
-
-const API_BASE = import.meta.env.VITE_API_BASE || '.'
-const API_BASE_FALLBACK = import.meta.env.VITE_API_BASE_FALLBACK || ''
+import { API_BASE, API_BASE_FALLBACK, DEFAULT_GAME, GAME_CONFIG, GITHUB_REPO_URL, VOICEPACK_LIST } from '@/constants'
+import { formatBytes, openLink, sortTree } from '@/utils'
 
 let apiBase: string = API_BASE
 
+const game = ref(DEFAULT_GAME)
+const version = ref('')
 const useFallback = ref(false)
 const versionListData = ref<
   Record<string, VersionData>
 >({})
-const displayVersionList = ref<string[]>([])
-const game = ref('hk4e')
-const version = ref('')
+const versionList = ref<string[]>([])
 const loadVoicePack = ref(false)
 const loadVoicePackList = ref([])
-const gamePackageData = ref<FileInfoWithType[]>([])
-const updatePackageData = ref<Record<string, FileInfoWithType[]>>({})
-const chunkData = ref<{
-  info: ChunkInfo | null
-  stat: ChunkStat | null
-} >({
-  info: null,
-  stat: null,
-})
+
 const loading = ref({
   versionList: false,
-  chunkStat: false,
+  chunkData: false,
   fileList: false,
 })
-const contentState = ref<string[]>(['game', 'update', 'list'])
+const collapseState = ref<string[]>(['game', 'update', 'file-list'])
+const packageList = ref<{
+  game: FileInfoWithType[]
+  update: Record<string, FileInfoWithType[]>
+}>({
+  game: [],
+  update: {},
+})
+const chunkState = ref<{
+  info: ChunkInfo | null
+  data: ChunkData | null
+} >({
+  info: null,
+  data: null,
+})
 const fileListState = ref<FileListState>({
   game: '',
   version: '',
   voice: [],
-  decompressed_path: '',
-  tree: {
-    type: NodeType.Directory,
-    name: '',
-    children: [],
-    size: 0,
-    displaySize: '',
-  },
-  currentPath: '',
+  decompressedPath: '',
+  tree: null,
   count: 0,
   size: 0,
 })
+const fileBrowser = ref()
 
-const isRootPath = computed(() => fileListState.value.currentPath === '')
+watchEffect(() => {
+  document.title = `${GAME_CONFIG[game.value].name} ${version.value} 版本文件列表 - HoyoGameFiles`
+})
 
-function updateDisplayFiles() {
-  if (isRootPath.value) {
-    fileListState.value.displayFileNode = fileListState.value.tree
-    return
-  }
-  const path = fileListState.value.currentPath.split('/')
-  let tree = fileListState.value.tree
-  for (let i = 0; i < path.length; i++) {
-    const name = path[i]
-    const child = tree.children.find(child => child.name === name)
-    if (child)
-      tree = child
-
-    else
-      return
-  }
-  fileListState.value.displayFileNode = tree
-}
-
-function goPrevious() {
-  if (isRootPath.value)
-    return
-  const path = fileListState.value.currentPath.split('/')
-  path.pop()
-  fileListState.value.currentPath = path.join('/')
-  updateDisplayFiles()
-}
-
-function goRoot() {
-  fileListState.value.currentPath = ''
-  updateDisplayFiles()
+function handleSelectGame(gameName: string) {
+  game.value = gameName
+  loadGameVersionList()
 }
 
 function handleSelectVersion(data: any) {
-  version.value = displayVersionList.value[data]
+  version.value = versionList.value[data]
   refreshVersionData()
 }
 
-function handleClickFile(file: FileNode) {
-  if (file.type === NodeType.Directory) {
-    if (isRootPath.value)
-      fileListState.value.currentPath = file.name
-    else
-      fileListState.value.currentPath += `/${file.name}`
-    updateDisplayFiles()
+function refreshVersionData() {
+  const versionData = versionListData.value[version.value]
+  packageList.value.game = []
+  if (versionData.game.full) {
+    packageList.value.game.push({
+      ...versionData.game.full,
+      type: '游戏本体',
+    })
   }
+  if (versionData.game.segments) {
+    packageList.value.game.push(...versionData.game.segments.map(
+      segment => ({
+        ...segment,
+        type: '游戏本体(分卷)',
+      }),
+    ))
+  }
+  for (const langKey of Object.keys(versionData.voice)) {
+    packageList.value.game.push({
+      ...versionData.voice[langKey],
+      type: '语音包',
+    })
+  }
+  packageList.value.update = {}
+  Object.keys(versionData.update).forEach((version) => {
+    packageList.value.update[version] = []
+    packageList.value.update[version].push({
+      ...versionData.update[version].game,
+      type: '游戏本体',
+    })
+    Object.keys(versionData.update[version].voice).forEach((langKey) => {
+      packageList.value.update[version].push({
+        ...versionData.update[version].voice[langKey],
+        type: '语音包',
+      })
+    })
+  })
+  chunkState.value.info = versionData.chunk
+  loadChunkData()
+  loadFileList()
 }
 
-function sortTree(tree: FileNode) {
-  tree.children.sort((a, b) => {
-    if (a.type === NodeType.Directory && b.type === NodeType.File)
-      return -1
-    if (a.type === NodeType.File && b.type === NodeType.Directory)
-      return 1
-    return a.name.localeCompare(b.name)
-  })
-  tree.children.forEach((child) => {
-    if (child.type === NodeType.Directory)
-      sortTree(child)
-  })
+async function fetchPkgVersion(filename: string) {
+  const data = await fetch(`${apiBase}/${game.value}/${version.value}/${filename}`)
+  return await data.text()
 }
 
-function loadGameVersionList(gameData: string) {
-  game.value = gameData
+function loadGameVersionList() {
   loading.value.versionList = true
-  fetch(`${apiBase}/${gameData}_versions.json`)
+  fetch(`${apiBase}/${game.value}_versions.json`)
     .then(res => res.json())
     .then((data) => {
       versionListData.value = data
-      displayVersionList.value = Object.keys(versionListData.value).reverse()
-      version.value = displayVersionList.value[0]
+      versionList.value = Object.keys(versionListData.value).reverse()
+      version.value = versionList.value[0]
       loadVoicePackList.value = []
       refreshVersionData()
     })
@@ -131,7 +124,7 @@ function loadGameVersionList(gameData: string) {
         useFallback.value = true
         apiBase = API_BASE_FALLBACK
         ElMessage.warning(`版本列表加载失败 尝试使用备用源`)
-        loadGameVersionList(gameData)
+        loadGameVersionList()
         return
       }
       ElMessage.error(`版本列表加载失败 ${err}`)
@@ -141,65 +134,21 @@ function loadGameVersionList(gameData: string) {
     })
 }
 
-function refreshVersionData() {
-  const versionData = versionListData.value[version.value]
-  gamePackageData.value = []
-  if (versionData.game.full) {
-    gamePackageData.value.push({
-      ...versionData.game.full,
-      type: 'game',
-    })
-  }
-  if (versionData.game.segments) {
-    gamePackageData.value.push(...versionData.game.segments.map(
-      segment => ({
-        ...segment,
-        type: 'game',
-      }),
-    ))
-  }
-  for (const langKey of Object.keys(versionData.voice)) {
-    gamePackageData.value.push({
-      ...versionData.voice[langKey],
-      type: 'voice',
-    })
-  }
-  updatePackageData.value = {}
-  Object.keys(versionData.update).forEach((version) => {
-    updatePackageData.value[version] = []
-    updatePackageData.value[version].push({
-      ...versionData.update[version].game,
-      type: 'game',
-    })
-    Object.keys(versionData.update[version].voice).forEach((langKey) => {
-      updatePackageData.value[version].push({
-        ...versionData.update[version].voice[langKey],
-        type: 'voice',
-      })
-    })
-  })
-  chunkData.value.info = versionData.chunk
-  loadChunkStat()
-  loadFileList()
-}
-
-async function fetchPkgVersion(version: string, filename: string) {
-  const data = await fetch(`${apiBase}/${game.value}/${version}/${filename}`)
-  return data.text()
-}
-
-async function loadChunkStat() {
-  loading.value.chunkStat = true
-  if (!chunkData.value.info)
+function loadChunkData() {
+  if (!chunkState.value.info)
     return
-  try {
-    const data = await fetch(`${apiBase}/chunk/${game.value}_${version.value}.json`)
-    chunkData.value.stat = (await data.json()).data
-  }
-  catch (e) {
-    ElMessage.error(`chunk 数据加载失败 ${e}`)
-  }
-  loading.value.chunkStat = false
+  loading.value.chunkData = true
+  fetch(`${apiBase}/chunk/${game.value}_${version.value}.json`)
+    .then(res => res.json())
+    .then((res) => {
+      chunkState.value.data = res.data
+    })
+    .catch((err) => {
+      ElMessage.error(`chunk 数据加载失败 ${err}`)
+    })
+    .finally(() => {
+      loading.value.chunkData = false
+    })
 }
 
 async function loadFileList() {
@@ -211,11 +160,10 @@ async function loadFileList() {
       name: '',
       children: [],
       size: 0,
-      displaySize: '',
     }
-    const gameData = await fetchPkgVersion(version.value, 'pkg_version')
+    const gameData = await fetchPkgVersion('pkg_version')
 
-    const fileData: FileData[] = []
+    const fileData: PkgVersionFile[] = []
     gameData.split('\n').forEach((line) => {
       if (line === '')
         return
@@ -224,7 +172,7 @@ async function loadFileList() {
     if (loadVoicePack.value) {
       for (const key of loadVoicePackList.value) {
         try {
-          const voiceData = await fetchPkgVersion(version.value, VoicePackList[key])
+          const voiceData = await fetchPkgVersion(VOICEPACK_LIST[key])
           voiceData.split('\n').forEach((line) => {
             if (line === '')
               return
@@ -249,7 +197,6 @@ async function loadFileList() {
             name,
             children: [],
             size: file.fileSize,
-            displaySize: formatBytes(file.fileSize),
             fileData: file,
           })
         }
@@ -265,7 +212,6 @@ async function loadFileList() {
               name,
               children: [],
               size: 0,
-              displaySize: '',
             }
             tree.children.push(newTree)
             tree = newTree
@@ -274,15 +220,16 @@ async function loadFileList() {
       }
     })
     sortTree(newFileTree)
-    fileListState.value.game = GameConfigList[game.value].name
+    fileListState.value.game = GAME_CONFIG[game.value].name
     fileListState.value.version = version.value
     fileListState.value.voice = loadedVoicePackList
-    fileListState.value.decompressed_path = versionListData.value[version.value].decompressed_path
+    fileListState.value.decompressedPath = versionListData.value[version.value].decompressed_path
     fileListState.value.tree = newFileTree
-    fileListState.value.currentPath = ''
     fileListState.value.count = fileData.length
     fileListState.value.size = newFileTree.size
-    updateDisplayFiles()
+    nextTick(() => {
+      fileBrowser.value.refresh()
+    })
   }
   catch (e) {
     ElMessage.error(`文件列表加载失败 ${e}`)
@@ -292,24 +239,24 @@ async function loadFileList() {
 }
 
 onMounted(() => {
-  loadGameVersionList(game.value)
+  handleSelectGame(DEFAULT_GAME)
 })
 </script>
 
 <template>
-  <el-container class="h-screen overflow-auto">
+  <el-container class="h-screen min-w-[900px] overflow-auto">
     <el-aside
       class="h-screen border-r p-4" width="auto"
     >
       <el-space direction="vertical" size="large" alignment="center">
         <div
-          v-for="[key, gameConfig] in Object.entries(GameConfigList)" :key="key"
+          v-for="[key, gameConfig] in Object.entries(GAME_CONFIG)" :key="key"
           class="overflow-hidden rounded-xl border-2 border-transparent transition-all duration-300 hover:border-gray-300"
           :class="{
             '!border-blue-500': game === key,
           }"
           :title="gameConfig.name"
-          @click="loadGameVersionList(key)"
+          @click="handleSelectGame(key)"
         >
           <img
             :src="gameConfig.icon" :alt="gameConfig.name"
@@ -319,7 +266,7 @@ onMounted(() => {
         <div
           class="overflow-hidden rounded-xl border-2 border-transparent transition-all  duration-300 hover:border-gray-300"
           title="Github"
-          @click="openLink(GithubRepoUrl)"
+          @click="openLink(GITHUB_REPO_URL)"
         >
           <img
             src="/icon/github.png" alt="GithubRepoUrl"
@@ -331,7 +278,7 @@ onMounted(() => {
     <el-aside v-loading="loading.versionList" width="160px" class="border-r">
       <el-scrollbar>
         <el-menu class="border-none" @select="handleSelectVersion">
-          <el-menu-item v-for="v, index in displayVersionList" :key="v" class="h-[36px]" :index="String(index)">
+          <el-menu-item v-for="v, index in versionList" :key="v" class="h-[36px]" :index="String(index)">
             <span>{{ v }}</span>
           </el-menu-item>
         </el-menu>
@@ -339,34 +286,34 @@ onMounted(() => {
     </el-aside>
     <el-scrollbar class="w-full">
       <el-main>
-        <el-collapse v-model="contentState">
+        <el-collapse v-model="collapseState">
           <el-collapse-item name="game" title="游戏包" class="mb-2 rounded-lg border px-4 shadow-md">
-            <GamePackageTable :data="gamePackageData" />
-            <el-collapse v-if="chunkData.info" class="mt-2">
+            <GamePackageTable :data="packageList.game" />
+            <el-collapse v-if="chunkState.info" class="mt-2">
               <el-collapse-item
                 title="chunk"
                 class="mb-1 rounded-lg border px-4"
               >
-                <el-scrollbar v-loading="loading.chunkStat">
+                <el-scrollbar v-loading="loading.chunkData">
                   <el-space class="mb-2">
                     <el-tag type="primary" effect="plain">
-                      branch={{ chunkData.info.branch }}
+                      branch={{ chunkState.info.branch }}
                     </el-tag>
                     <el-tag type="primary" effect="plain">
-                      package_id={{ chunkData.info.package_id }}
+                      package_id={{ chunkState.info.package_id }}
                     </el-tag>
                     <el-tag type="primary" effect="plain">
-                      password={{ chunkData.info.password }}
+                      password={{ chunkState.info.password }}
                     </el-tag>
                     <el-tag type="primary" effect="plain">
-                      tag={{ chunkData.info.tag }}
+                      tag={{ chunkState.info.tag }}
                     </el-tag>
                     <el-tag type="primary" effect="plain">
-                      build_id={{ chunkData.stat?.build_id }}
+                      build_id={{ chunkState.data?.build_id }}
                     </el-tag>
                   </el-space>
                   <el-descriptions
-                    v-for="manifest, index in chunkData.stat?.manifests" :key="index"
+                    v-for="manifest, index in chunkState.data?.manifests" :key="index"
                     :column="3"
                     class="mb-2"
                     border
@@ -421,12 +368,12 @@ onMounted(() => {
           </el-collapse-item>
           <el-collapse-item name="update" title="升级包" class="mb-2 rounded-lg border px-4 shadow-md">
             <div v-loading="loading.versionList">
-              <div v-if="Object.keys(updatePackageData).length === 0" class="py-2 text-center text-[color:var(--el-text-color-secondary)]">
+              <div v-if="Object.keys(packageList.update).length === 0" class="py-2 text-center text-[color:var(--el-text-color-secondary)]">
                 无数据
               </div>
               <el-collapse v-else>
                 <el-collapse-item
-                  v-for="[versionKey, updateData] in Object.entries(updatePackageData)" :key="versionKey"
+                  v-for="[versionKey, updateData] in Object.entries(packageList.update)" :key="versionKey"
                   :title="versionKey"
                   class="mb-1 rounded-lg border px-4"
                 >
@@ -435,9 +382,9 @@ onMounted(() => {
               </el-collapse>
             </div>
           </el-collapse-item>
-          <el-collapse-item name="list" title="文件列表" class="mb-2 rounded-lg border px-4 shadow-md">
+          <el-collapse-item name="file-list" title="文件列表" class="mb-2 rounded-lg border px-4 shadow-md">
             <div v-loading="loading.fileList || loading.versionList">
-              <template v-if="GameConfigList[game].voice.length">
+              <template v-if="GAME_CONFIG[game].voice.length">
                 <el-space>
                   <el-switch
                     v-model="loadVoicePack"
@@ -455,7 +402,7 @@ onMounted(() => {
                     size="small"
                   >
                     <el-option
-                      v-for="item in GameConfigList[game].voice"
+                      v-for="item in GAME_CONFIG[game].voice"
                       :key="item"
                       :label="item"
                       :value="item"
@@ -468,9 +415,6 @@ onMounted(() => {
                 <el-divider class="mb-2 mt-1" />
               </template>
               <el-space class="mb-2">
-                <el-tag type="primary" effect="plain">
-                  当前路径 {{ fileListState.currentPath || '根目录' }}
-                </el-tag>
                 <el-tag type="primary" effect="plain">
                   游戏 {{ fileListState.game }}
                 </el-tag>
@@ -487,97 +431,7 @@ onMounted(() => {
                   文件大小 {{ formatBytes(fileListState.size) }}
                 </el-tag>
               </el-space>
-              <table v-if="fileListState.displayFileNode" class="w-full">
-                <colgroup>
-                  <col class="w-6">
-                  <col>
-                  <col class="w-10">
-                  <col class="w-20">
-                  <col class="w-32">
-                </colgroup>
-                <thead>
-                  <tr class="text-left text-sm">
-                    <th />
-                    <th>名称</th>
-                    <th>类型</th>
-                    <th>大小</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody class="text-sm">
-                  <tr
-                    :class="{
-                      'text-gray-400': isRootPath,
-                      'cursor-pointer hover:bg-gray-100': !isRootPath,
-                    }" @click="goRoot"
-                  >
-                    <td />
-                    <td>...</td>
-                    <td />
-                    <td />
-                  </tr>
-                  <tr
-                    :class="{
-                      'text-gray-400': isRootPath,
-                      'cursor-pointer hover:bg-gray-100': !isRootPath,
-                    }" @click="goPrevious"
-                  >
-                    <td />
-                    <td>..</td>
-                    <td />
-                    <td />
-                  </tr>
-                  <tr
-                    v-for="file in fileListState.displayFileNode.children" :key="file.name" class="hover:bg-gray-100 " :class="{
-                      'cursor-pointer text-yellow-600': file.type === NodeType.Directory,
-                    }" @click="handleClickFile(file)"
-                  >
-                    <td>
-                      <template v-if="file.type === NodeType.Directory">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                          class="inline-block size-5"
-                        >
-                          <path
-                            d="M3.75 3A1.75 1.75 0 0 0 2 4.75v3.26a3.235 3.235 0 0 1 1.75-.51h12.5c.644 0 1.245.188 1.75.51V6.75A1.75 1.75 0 0 0 16.25 5h-4.836a.25.25 0 0 1-.177-.073L9.823 3.513A1.75 1.75 0 0 0 8.586 3H3.75ZM3.75 9A1.75 1.75 0 0 0 2 10.75v4.5c0 .966.784 1.75 1.75 1.75h12.5A1.75 1.75 0 0 0 18 15.25v-4.5A1.75 1.75 0 0 0 16.25 9H3.75Z"
-                          />
-                        </svg>
-                      </template>
-                      <template v-if="file.type === NodeType.File">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                          class="inline-block size-5"
-                        >
-                          <path
-                            d="M3 3.5A1.5 1.5 0 0 1 4.5 2h6.879a1.5 1.5 0 0 1 1.06.44l4.122 4.12A1.5 1.5 0 0 1 17 7.622V16.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16.5v-13Z"
-                          />
-                        </svg>
-                      </template>
-                    </td>
-                    <td class="truncate">
-                      {{ file.name }}
-                      <template v-if="file.type === NodeType.Directory">
-                        ({{ file.children.length }})
-                      </template>
-                    </td>
-                    <td>{{ file.type === NodeType.Directory ? '目录' : '文件' }}</td>
-                    <td>{{ file.displaySize || formatBytes(file.size) }}</td>
-                    <td>
-                      <template v-if="file.type === NodeType.File && file.fileData">
-                        <button v-if="fileListState.decompressed_path" class="mr-1" @click="openLink(`${fileListState.decompressed_path}/${file.fileData.remoteName}`)">
-                          下载
-                        </button>
-                        <button v-if="file.fileData.md5" class="mr-1" @click="copyToClipboard(file.fileData.md5)">
-                          md5
-                        </button>
-                        <button v-if="file.fileData.hash" class="mr-1" @click="copyToClipboard(file.fileData.hash)">
-                          hash
-                        </button>
-                      </template>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <FileBrowser ref="fileBrowser" :file-tree="fileListState.tree" :decompressed-path="fileListState.decompressedPath" />
             </div>
           </el-collapse-item>
         </el-collapse>

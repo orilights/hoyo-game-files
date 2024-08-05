@@ -1,8 +1,13 @@
 import type { GameConfig } from '@/types'
 
-export const GithubRepoUrl = 'https://github.com/orilights/hoyo-game-files'
+export const API_BASE = import.meta.env.VITE_API_BASE || '.'
+export const API_BASE_FALLBACK = import.meta.env.VITE_API_BASE_FALLBACK || ''
 
-export const GameConfigList: Record<string, GameConfig>
+export const GITHUB_REPO_URL = 'https://github.com/orilights/hoyo-game-files'
+
+export const DEFAULT_GAME = 'hk4e'
+
+export const GAME_CONFIG: Record<string, GameConfig>
  = {
    hk4e: {
      name: '原神',
@@ -21,7 +26,7 @@ export const GameConfigList: Record<string, GameConfig>
    },
  }
 
-export const VoicePackList: Record<string, string> = {
+export const VOICEPACK_LIST: Record<string, string> = {
   汉语: 'Audio_Chinese_pkg_version',
   英语: 'Audio_English(US)_pkg_version',
   日语: 'Audio_Japanese_pkg_version',

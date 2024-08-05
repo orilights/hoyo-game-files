@@ -14,3 +14,7 @@
 .el-collapse-item__wrap {
   border-bottom: none;
 }
+
+.el-breadcrumb__separator {
+  margin: 0 2px;
+}
