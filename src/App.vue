@@ -48,7 +48,9 @@ const fileListState = ref<FileListState>({
 const fileBrowser = ref()
 
 watchEffect(() => {
-  document.title = `${GAME_CONFIG[game.value].name} ${version.value} 版本文件列表 - HoyoGameFiles`
+  document.title = loading.value.versionList
+    ? 'HoyoGameFiles'
+    : `${GAME_CONFIG[game.value].name} ${version.value} 版本文件列表 - HoyoGameFiles`
 })
 
 function handleSelectGame(gameName: string) {
@@ -56,8 +58,8 @@ function handleSelectGame(gameName: string) {
   loadGameVersionList()
 }
 
-function handleSelectVersion(data: any) {
-  version.value = versionList.value[data]
+function handleSelectVersion(newVersion: string) {
+  version.value = newVersion
   refreshVersionData()
 }
 
@@ -277,11 +279,18 @@ onMounted(() => {
     </el-aside>
     <el-aside v-loading="loading.versionList" width="160px" class="border-r">
       <el-scrollbar>
-        <el-menu class="border-none" @select="handleSelectVersion">
-          <el-menu-item v-for="v, index in versionList" :key="v" class="h-[36px]" :index="String(index)">
-            <span>{{ v }}</span>
-          </el-menu-item>
-        </el-menu>
+        <div class="p-3">
+          <div
+            v-for="ver in versionList" :key="ver"
+            class="my-1 cursor-pointer rounded-lg px-4 py-1.5 text-sm transition-colors hover:bg-gray-100"
+            :class="{
+              '!bg-blue-100': version === ver,
+            }"
+            @click="handleSelectVersion(ver)"
+          >
+            {{ ver }}
+          </div>
+        </div>
       </el-scrollbar>
     </el-aside>
     <el-scrollbar class="w-full">
