@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useUrlSearchParams } from '@vueuse/core'
 import type { ChunkData, ChunkInfo, FileInfoWithType, FileListState, FileNode, PkgVersionFile, VersionData } from '@/types'
 import { NodeType } from '@/types'
 import { API_BASE, API_BASE_FALLBACK, DEFAULT_GAME, GAME_CONFIG, GITHUB_REPO_URL, VOICEPACK_LIST } from '@/constants'
@@ -6,7 +7,12 @@ import { formatBytes, openLink, sortTree } from '@/utils'
 
 let apiBase: string = API_BASE
 
-const game = ref(DEFAULT_GAME)
+const params = useUrlSearchParams('history')
+
+const game = computed({
+  get: () => GAME_CONFIG[params.game as string] ? params.game as string : DEFAULT_GAME,
+  set: value => params.game = value,
+})
 const version = ref('')
 const useFallback = ref(false)
 const versionListData = ref<
@@ -241,7 +247,7 @@ async function loadFileList() {
 }
 
 onMounted(() => {
-  handleSelectGame(DEFAULT_GAME)
+  handleSelectGame(game.value)
 })
 </script>
 

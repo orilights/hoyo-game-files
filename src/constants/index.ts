@@ -24,6 +24,11 @@ export const GAME_CONFIG: Record<string, GameConfig>
      icon: '/icon/nap.png',
      voice: [],
    },
+   bh3: {
+     name: '崩坏3',
+     icon: '/icon/bh3.png',
+     voice: [],
+   },
  }
 
 export const VOICEPACK_LIST: Record<string, string> = {

@@ -54,7 +54,7 @@ function handleCopySelected() {
         <el-button link type="primary" size="small" @click="copyToClipboard(scope.row.url)">
           复制链接
         </el-button>
-        <el-button link type="primary" size="small" @click="openLink(scope.row.checksum)">
+        <el-button link type="primary" size="small" @click="openLink(scope.row.url)">
           下载
         </el-button>
       </template>
