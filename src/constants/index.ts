@@ -22,7 +22,7 @@ export const GAME_CONFIG: Record<string, GameConfig>
    nap: {
      name: '绝区零',
      icon: '/icon/nap.png',
-     voice: [],
+     voice: ['汉语', '英语', '日语', '韩语'],
    },
    bh3: {
      name: '崩坏3',
