@@ -11,24 +11,24 @@
     "lintf": "eslint . --fix"
   },
   "dependencies": {
-    "@vueuse/core": "^11.1.0",
-    "vue": "^3.4.35"
+    "@vueuse/core": "^11.2.0",
+    "vue": "^3.5.13"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^2.24.1",
-    "@types/node": "^20.14.12",
-    "@vitejs/plugin-vue": "^5.1.2",
+    "@antfu/eslint-config": "^3.9.2",
+    "@types/node": "^22.9.0",
+    "@vitejs/plugin-vue": "^5.2.0",
     "autoprefixer": "^10.4.20",
-    "element-plus": "^2.7.8",
-    "eslint": "^9.8.0",
-    "eslint-plugin-tailwindcss": "^3.17.4",
-    "postcss": "^8.4.40",
-    "tailwindcss": "^3.4.7",
-    "typescript": "^5.5.4",
-    "unplugin-auto-import": "^0.18.2",
-    "unplugin-vue-components": "^0.27.3",
-    "vite": "^5.3.5",
+    "element-plus": "^2.8.8",
+    "eslint": "^9.15.0",
+    "eslint-plugin-tailwindcss": "^3.17.5",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "unplugin-auto-import": "^0.18.5",
+    "unplugin-vue-components": "^0.27.4",
+    "vite": "^5.4.11",
     "vite-plugin-simple-html": "^0.1.2",
-    "vue-tsc": "^2.0.29"
+    "vue-tsc": "^2.1.10"
   }
 }

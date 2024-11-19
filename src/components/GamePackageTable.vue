@@ -37,16 +37,16 @@ function handleCopySelected() {
     @selection-change="handleSelectionChange"
   >
     <el-table-column type="selection" width="28" />
-    <el-table-column prop="name" label="文件名" min-width="200" />
+    <el-table-column prop="name" label="文件名" min-width="200" show-overflow-tooltip />
     <el-table-column prop="type" label="类型" width="100" />
-    <el-table-column prop="checksum" label="校验信息" width="250">
-      <template #default="scope">
-        <CopyAbleText :text="scope.row.checksum" />
-      </template>
-    </el-table-column>
     <el-table-column prop="size" label="文件大小" width="120">
       <template #default="scope">
         <span>{{ formatBytes(scope.row.size) }}</span>
+      </template>
+    </el-table-column>
+    <el-table-column prop="checksum" label="校验信息" width="250">
+      <template #default="scope">
+        <CopyAbleText :text="scope.row.checksum" />
       </template>
     </el-table-column>
     <el-table-column fixed="right" width="120">
