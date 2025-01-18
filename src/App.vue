@@ -55,8 +55,8 @@ const fileBrowser = ref()
 
 watchEffect(() => {
   document.title = loading.value.versionList
-    ? 'HoyoGameFiles'
-    : `${GAME_CONFIG[game.value].name} ${version.value} 版本文件列表 - HoyoGameFiles`
+    ? 'HoyoFiles'
+    : `${GAME_CONFIG[game.value].name} ${version.value} 版本文件列表 - HoyoFiles`
 })
 
 function handleSelectGame(gameName: string) {

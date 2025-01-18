@@ -3,7 +3,7 @@ import type { GameConfig } from '@/types'
 export const API_BASE = import.meta.env.VITE_API_BASE || '.'
 export const API_BASE_FALLBACK = import.meta.env.VITE_API_BASE_FALLBACK || ''
 
-export const GITHUB_REPO_URL = 'https://github.com/orilights/hoyo-game-files'
+export const GITHUB_REPO_URL = 'https://github.com/orilights/hoyo-files'
 
 export const DEFAULT_GAME = 'hk4e'
 
