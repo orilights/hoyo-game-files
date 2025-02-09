@@ -28,6 +28,7 @@ const loading = ref({
   fileList: false,
 })
 const collapseState = ref<string[]>(['game', 'update', 'file-list'])
+const updateCollapseState = ref<string[]>([])
 const packageList = ref<{
   game: FileInfoWithType[]
   update: Record<string, FileInfoWithType[]>
@@ -107,6 +108,7 @@ function refreshVersionData() {
     })
   })
   chunkState.value.info = versionData.chunk
+  updateCollapseState.value = [`${Object.keys(packageList.value.update).at(0)}-${version.value}`]
   loadChunkData()
   loadFileList()
 }
@@ -169,6 +171,8 @@ async function loadFileList() {
       children: [],
       size: 0,
     }
+    const loadKey = `${game.value}_${version.value}`
+
     const gameData = await fetchPkgVersion('pkg_version')
 
     const fileData: PkgVersionFile[] = []
@@ -192,6 +196,9 @@ async function loadFileList() {
           ElMessage.error(`语音包[${key}]加载失败 ${e}`)
         }
       }
+    }
+    if (loadKey !== `${game.value}_${version.value}`) {
+      return
     }
     fileData.forEach((file) => {
       const path = file.remoteName.replace(/\\/g, '/').split('/')
@@ -228,13 +235,15 @@ async function loadFileList() {
       }
     })
     sortTree(newFileTree)
-    fileListState.value.game = GAME_CONFIG[game.value].name
-    fileListState.value.version = version.value
-    fileListState.value.voice = loadedVoicePackList
-    fileListState.value.decompressedPath = versionListData.value[version.value].decompressed_path
-    fileListState.value.tree = newFileTree
-    fileListState.value.count = fileData.length
-    fileListState.value.size = newFileTree.size
+    fileListState.value = {
+      game: GAME_CONFIG[game.value].name,
+      version: version.value,
+      voice: loadedVoicePackList,
+      decompressedPath: versionListData.value[version.value].decompressed_path,
+      tree: newFileTree,
+      count: fileData.length,
+      size: newFileTree.size,
+    }
     nextTick(() => {
       fileBrowser.value.refresh()
     })
@@ -388,10 +397,11 @@ onMounted(() => {
                   <div v-if="Object.keys(packageList.update).length === 0" class="py-2 text-center text-[color:var(--el-text-color-secondary)]">
                     无数据
                   </div>
-                  <el-collapse v-else>
+                  <el-collapse v-else v-model="updateCollapseState">
                     <el-collapse-item
                       v-for="[versionKey, updateData] in Object.entries(packageList.update)" :key="versionKey"
                       :title="versionKey"
+                      :name="`${versionKey}-${version}`"
                       class="mb-1 rounded-lg border px-4"
                     >
                       <GamePackageTable :data="updateData" />
