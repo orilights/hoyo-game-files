@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import path from 'node:path'
 import process from 'node:process'
 import vue from '@vitejs/plugin-vue'
@@ -30,6 +31,7 @@ export default defineConfig({
       inject: {
         data: {
           injectHead: process.env.INJECT_HEAD || '',
+          injectHeadB: Buffer.from(process.env.INJECT_HEAD_B || '', 'base64').toString('ascii'),
         },
       },
     }),
